@@ -1,12 +1,9 @@
 <nb-layout windowMode>
-	<!-- Header — its content shifts aside for the expanded AI chat panel
-	     (the chat is a full-height column; it must displace content, not cover it) -->
+	<!-- Header. It no longer pads itself around the chat: the chat is a real column in the flex
+	     flow (see [containerFixed]="false" below), so it DISPLACES the header instead of covering
+	     it. The old padding existed only to dodge a fixed panel that overlaid the header band. -->
 	@if (user()) {
-		<nb-layout-header
-			fixed
-			[style.paddingLeft.px]="chatHeaderPad('start')"
-			[style.paddingRight.px]="chatHeaderPad('end')"
-		>
+		<nb-layout-header fixed>
 			<ngx-header [expanded]="isExpanded()"></ngx-header>
 		</nb-layout-header>
 	}
@@ -87,13 +84,22 @@
 	     Single @if (like the menu sidebar above): nesting control-flow blocks breaks
 	     nb-layout's select-based content projection for nb-sidebar. -->
 	@if (user() && chatSidebarService.available() && chatSidebarComponent(); as chatComponent) {
+		<!-- containerFixed=false is what makes this a COLUMN rather than an overlay.
+		     Nebular's default (true) adds `.main-container-fixed { position: fixed }`, and a fixed
+		     panel does not participate in the flex row: it was pinned over the header band at
+		     z-index 1041, the header padded its own content to dodge it, and a ResizeObserver had
+		     to mirror the host's width onto it. Worse, while COLLAPSED the host went to 0 width but
+		     the fixed container kept its own — leaving an invisible, full-height, click-eating strip
+		     over the header and the left edge of the canvas (measured: 384x720 at x=256, swallowing
+		     elementFromPoint hits on the org selector and page content).
+		     In flow, "collapsed" really is zero width and can cover nothing. -->
 		<nb-sidebar
-			#chatSidebarHost
 			class="chat-sidebar"
 			[class]="chatSidebarService.config()?.class ?? ''"
 			[class.chat-sidebar-end]="chatSidebarService.position() === 'end'"
 			[class.chat-sidebar-maximized]="chatSidebarService.maximized()"
 			[style.--gz-chat-width]="chatSidebarService.width() + 'px'"
+			[containerFixed]="false"
 			tag="chat-sidebar"
 			[state]="chatSidebarService.expanded() ? 'expanded' : 'collapsed'"
 		>

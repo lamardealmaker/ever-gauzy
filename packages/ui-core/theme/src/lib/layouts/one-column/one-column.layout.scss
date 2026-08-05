@@ -80,21 +80,17 @@
 
     // Maximized: take all space except the nav menu (Menu | Chat);
     // the canvas is hidden (components stay alive) until restored.
+    //
+    // Only the HOST needs to grow now. The panel fills it at 100%, so the old
+    // `::ng-deep .main-container { width: var(--gz-chat-live-width, 100vw) }`
+    // override is gone — it existed solely because the fixed panel could not
+    // follow the host and had to be told the width separately, which is what
+    // made "maximize does nothing" possible whenever that variable was missing.
     &.chat-sidebar-maximized {
       flex: 1 1 auto !important;
       width: auto !important;
       min-width: 0 !important;
       max-width: none !important;
-
-      // The visible panel is the fixed `.main-container` below, whose width
-      // comes from --gz-chat-live-width. Its fallback is the DOCKED chat
-      // width, so whenever that variable is missing the host would grow while
-      // the panel stayed narrow — which is exactly what "maximize does
-      // nothing" looks like. Maximized falls back to the viewport instead.
-      ::ng-deep .main-container {
-        width: var(--gz-chat-live-width, 100vw) !important;
-        max-width: 100vw !important;
-      }
     }
 
     &.collapsed {
@@ -102,12 +98,19 @@
       overflow: hidden;
     }
 
+    // The panel simply FILLS its host. The host is the flex child that owns the width
+    // (see `&.expanded` / `&.collapsed` above), so there is nothing to mirror and nothing to
+    // pin: no viewport coordinates, no z-index, no ResizeObserver-fed width variable.
+    //
+    // This used to be `position: fixed` with `top: 0; height: 100vh; z-index: 1041`, i.e. an
+    // overlay that COVERED the header band — which is why the header had to pad its own content
+    // aside, and why header dropdowns collided with the chat. It also meant a collapsed chat left
+    // a full-height invisible strip that ate clicks on the header and canvas, because the host
+    // going to `width: 0` could not clip a fixed descendant.
     ::ng-deep .main-container {
-      width: var(--gz-chat-live-width, var(--gz-chat-width, 24rem)) !important;
+      width: 100% !important;
       max-width: none;
-      top: 0 !important;
-      height: 100vh !important;
-      z-index: 1041; // same layer as the nav menu sidebar — covers the header band
+      height: 100%;
       transition: width 0.2s ease;
       overflow: hidden;
 
